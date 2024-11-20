@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Noats.Models;
+using Noats.Services;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
@@ -25,9 +27,15 @@ public partial class NoatWindow : Window
     private const double MinAspectRatio = 1.0;
     private const double MaxAspectRatio = 1.5;
 
-    public NoatWindow()
+    private readonly ThemeService _themeService;
+    private ThemeDefinition _currentTheme;
+
+    public NoatWindow(ThemeService themeService)
     {
         InitializeComponent();
+
+        _themeService = new ThemeService();
+        ApplyRandomTheme();
 
         MouseLeftButtonDown += NoatWindow_MouseLeftButtonDown;
         KeyDown += NoatWindow_KeyDown;
@@ -42,6 +50,30 @@ public partial class NoatWindow : Window
         // Setup text change throttling
         _textChangeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _textChangeTimer.Tick += TextChangeTimer_Tick;
+
+        ContentBox.IsReadOnly = false;
+        ContentBox.IsHitTestVisible = true;
+        _isSelected = true;
+        MainBorder.BorderThickness = new Thickness(2);
+        MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFE082"));
+        ContentBox.Focus();
+    }
+
+    private void ApplyRandomTheme()
+    {
+        _currentTheme = _themeService.GetRandomTheme();
+        ApplyTheme(_currentTheme);
+    }
+
+    private void ApplyTheme(ThemeDefinition theme)
+    {
+        MainBorder.Background = FindResource($"{theme.Name}.Background") as SolidColorBrush;
+        ContentBox.Foreground = FindResource($"{theme.Name}.Text") as SolidColorBrush;
+
+        if (_isSelected)
+        {
+            MainBorder.BorderBrush = FindResource($"{theme.Name}.Selection") as SolidColorBrush;
+        }
     }
 
     private void NoatWindow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

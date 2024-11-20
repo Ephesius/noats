@@ -1,0 +1,29 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Lemon Drop -->
+    <SolidColorBrush x:Key="LemonDrop.Background" Color="#FFF9C4"/>
+    <SolidColorBrush x:Key="LemonDrop.Text" Color="#433E27"/>
+    <SolidColorBrush x:Key="LemonDrop.Selection" Color="#FFE082"/>
+    
+    <!-- Sky Blue -->
+    <SolidColorBrush x:Key="SkyBlue.Background" Color="#BBDEFB"/>
+    <SolidColorBrush x:Key="SkyBlue.Text" Color="#1A237E"/>
+    <SolidColorBrush x:Key="SkyBlue.Selection" Color="#90CAF9"/>
+    
+    <!-- Mint -->
+    <SolidColorBrush x:Key="Mint.Background" Color="#E0F2F1"/>
+    <SolidColorBrush x:Key="Mint.Text" Color="#004D40"/>
+    <SolidColorBrush x:Key="Mint.Selection" Color="#B2DFDB"/>
+    
+    <!-- Peach -->
+    <SolidColorBrush x:Key="Peach.Background" Color="#FFE0B2"/>
+    <SolidColorBrush x:Key="Peach.Text" Color="#4E342E"/>
+    <SolidColorBrush x:Key="Peach.Selection" Color="#FFCC80"/>
+    
+    <!-- Rose -->
+    <SolidColorBrush x:Key="Rose.Background" Color="#F8BBD0"/>
+    <SolidColorBrush x:Key="Rose.Text" Color="#880E4F"/>
+    <SolidColorBrush x:Key="Rose.Selection" Color="#F48FB1"/>
+
+</ResourceDictionary>
