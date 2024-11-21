@@ -28,17 +28,17 @@ public partial class NoatWindow : Window
     private const double MaxAspectRatio = 1.5;
 
     private readonly ThemeService _themeService;
-    private ThemeDefinition _currentTheme;
+    private ThemeDefinition? _currentTheme;
 
     public NoatWindow(ThemeService themeService)
     {
         InitializeComponent();
 
-        _themeService = new ThemeService();
+        _themeService = themeService;
         ApplyRandomTheme();
 
         MouseLeftButtonDown += NoatWindow_MouseLeftButtonDown;
-        KeyDown += NoatWindow_KeyDown;
+        PreviewKeyDown += NoatWindow_PreviewKeyDown;
         Deactivated += NoatWindow_Deactivated;
         SizeChanged += NoatWindow_SizeChanged;
         ContentBox.TextChanged += ContentBox_TextChanged;
@@ -85,8 +85,9 @@ public partial class NoatWindow : Window
         DragMove();
     }
 
-    private void NoatWindow_KeyDown(object sender, KeyEventArgs e)
+    private void NoatWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // Rest of the handler stays exactly the same
         if (_isSelected && e.Key == Key.E && ContentBox.IsReadOnly)
         {
             ContentBox.IsReadOnly = false;
@@ -99,6 +100,11 @@ public partial class NoatWindow : Window
             ExitEditMode();
             _isSelected = false;
             MainBorder.BorderThickness = new Thickness(0);
+        }
+        else if (_isSelected && e.Key == Key.Delete && ContentBox.IsReadOnly)
+        {
+            Close();
+            e.Handled = true;
         }
     }
 
