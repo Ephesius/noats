@@ -39,7 +39,7 @@ public partial class App : Application
         _hiddenWindow.Show();
 
         // Initialize hotkey service
-        _hotkeyService = new HotkeyService(_hiddenWindow, CreateNewNoat, HideAllNoats);
+        _hotkeyService = new HotkeyService(_hiddenWindow, CreateNewNoat, HideAllNoats, UnhideAllNoats);
     }
 
     private void CreateNewNoat()
@@ -59,6 +59,17 @@ public partial class App : Application
             foreach (var noat in _noats)
             {
                 noat.Hide();
+            }
+        });
+    }
+
+    private void UnhideAllNoats()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            foreach (var noat in _noats)
+            {
+                noat.Show();
             }
         });
     }
