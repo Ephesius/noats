@@ -12,7 +12,7 @@ public class ThemeService
     private static readonly ThemeDefinition[] Themes =
     {
         new("LemonDrop", "#FFF9C4", "#433E27", "#FFE082"),
-        new("SkyBlue", "#BBDEFB", "#1A237", "#90CAF9"),
+        new("SkyBlue", "#BBDEFB", "#1A237E", "#90CAF9"),
         new("Mint", "#E0F2F1", "#004D40", "#B2DFDB"),
         new("Peach", "#FFE0B2", "#4E342E", "#FFCC80"),
         new("Rose", "#F8BBD0", "#880E4F", "#F48FB1")

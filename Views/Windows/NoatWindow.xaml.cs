@@ -1,5 +1,6 @@
 ﻿using Noats.Models;
 using Noats.Services;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -15,7 +16,7 @@ public partial class NoatWindow : Window
         set => ContentBox.Text = value;
     }
 
-    public Point Position
+    public System.Windows.Point Position
     {
         get => new(Left, Top);
         set { Left = value.X; Top = value.Y; }
@@ -29,12 +30,14 @@ public partial class NoatWindow : Window
     private readonly ThemeService _themeService;
     private readonly ThemeDefinition _currentTheme;
 
-    public NoatWindow(ThemeService themeService)
+    public string CurrentThemeName => _currentTheme.Name;
+
+    public NoatWindow(ThemeService themeService, ThemeDefinition? initialTheme = null)
     {
         InitializeComponent();
 
         _themeService = themeService;
-        _currentTheme = _themeService.GetRandomTheme(); // Ensure _currentTheme is initialized
+        _currentTheme = initialTheme ?? _themeService.GetRandomTheme();
         ApplyTheme(_currentTheme);
 
         MouseLeftButtonDown += NoatWindow_MouseLeftButtonDown;
@@ -52,6 +55,28 @@ public partial class NoatWindow : Window
         _isSelected = true;
         UpdateSelectionState();
         ContentBox.Focus();
+        ValidateWindowPosition();
+    }
+
+    private void ValidateWindowPosition()
+    {
+        // Get working area of nearest screen
+        var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point((int)Left, (int)Top));
+        var workingArea = screen.WorkingArea;
+
+        // Ensure at least 20px of the window is visible
+        if (Left + Width - 20 < workingArea.Left)
+            Left = workingArea.Left;
+        else if (Left + 20 > workingArea.Right)
+            Left = workingArea.Right - Width;
+
+        if (Top + Height - 20 < workingArea.Top)
+            Top = workingArea.Top;
+        else
+        {
+            if (Top + 20 > workingArea.Bottom)
+                Top = workingArea.Bottom - Height;
+        }
     }
 
     private void UpdateSelectionState()
@@ -68,7 +93,7 @@ public partial class NoatWindow : Window
         }
     }
 
-    private void ApplyTheme(ThemeDefinition theme)
+    public void ApplyTheme(ThemeDefinition theme)
     {
         MainBorder.Background = FindResource($"{theme.Name}.Background") as SolidColorBrush;
         ContentBox.Foreground = FindResource($"{theme.Name}.Text") as SolidColorBrush;
@@ -82,9 +107,10 @@ public partial class NoatWindow : Window
         UpdateSelectionState();
         Focus();
         DragMove();
+        ValidateWindowPosition();
     }
 
-    private void NoatWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    private async void NoatWindow_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         // Enter edit mode on selected noat
         if (_isSelected && e.Key == Key.E && ContentBox.IsReadOnly)
@@ -100,6 +126,8 @@ public partial class NoatWindow : Window
             ExitEditMode();
             _isSelected = false;
             UpdateSelectionState();
+            await App.Current.SaveStateAsync();
+            e.Handled = true;
         }
         // Delete selected noat
         else if (_isSelected && e.Key == Key.Delete && ContentBox.IsReadOnly)
@@ -113,6 +141,7 @@ public partial class NoatWindow : Window
             Hide();
             _isSelected = false;
             UpdateSelectionState();
+            await App.Current.SaveStateAsync();
             e.Handled = true;
         }
         // Duplicate selected noat
@@ -121,7 +150,7 @@ public partial class NoatWindow : Window
             var newNoat = new NoatWindow(_themeService)
             {
                 Content = this.Content,
-                Position = new Point(this.Left + 20, this.Top + 20),
+                Position = new System.Windows.Point(this.Left + 20, this.Top + 20),
                 Width = this.Width,
                 Height = this.Height
             };
@@ -133,11 +162,12 @@ public partial class NoatWindow : Window
         }
     }
 
-    private void NoatWindow_Deactivated(object? sender, EventArgs e)
+    private async void NoatWindow_Deactivated(object? sender, EventArgs e)
     {
         ExitEditMode();
         _isSelected = false;
         UpdateSelectionState();
+        await App.Current.SaveStateAsync();
     }
 
     private void ExitEditMode()
@@ -163,7 +193,7 @@ public partial class NoatWindow : Window
         Dispatcher.Invoke(() =>
         {
             // Update size based on content
-            ContentBox.Measure(new Size(Width, double.PositiveInfinity));
+            ContentBox.Measure(new System.Windows.Size(Width, double.PositiveInfinity));
             var desiredSize = ContentBox.DesiredSize.Height + ContentBox.Padding.Top + ContentBox.Padding.Bottom;
             var newHeight = Math.Max(40, desiredSize);
 
