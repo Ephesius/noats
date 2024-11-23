@@ -1,20 +1,8 @@
 ﻿using Noats.Models;
 using Noats.Services;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace Noats.Views.Windows;
@@ -22,20 +10,20 @@ namespace Noats.Views.Windows;
 public partial class NoatWindow : Window
 {
     private bool _isSelected = false;
-    private readonly DispatcherTimer _resizeTimer;
-    private readonly DispatcherTimer _textChangeTimer;
+    private readonly DispatcherTimer _updateTimer;
     private const double MinAspectRatio = 1.0;
     private const double MaxAspectRatio = 1.5;
 
     private readonly ThemeService _themeService;
-    private ThemeDefinition? _currentTheme;
+    private readonly ThemeDefinition _currentTheme;
 
     public NoatWindow(ThemeService themeService)
     {
         InitializeComponent();
 
         _themeService = themeService;
-        ApplyRandomTheme();
+        _currentTheme = _themeService.GetRandomTheme(); // Ensure _currentTheme is initialized
+        ApplyTheme(_currentTheme);
 
         MouseLeftButtonDown += NoatWindow_MouseLeftButtonDown;
         PreviewKeyDown += NoatWindow_PreviewKeyDown;
@@ -44,25 +32,28 @@ public partial class NoatWindow : Window
         ContentBox.TextChanged += ContentBox_TextChanged;
 
         // Setup resize throttling
-        _resizeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
-        _resizeTimer.Tick += ResizeTimer_Tick;
-
-        // Setup text change throttling
-        _textChangeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
-        _textChangeTimer.Tick += TextChangeTimer_Tick;
+        _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        _updateTimer.Tick += UpdateTimer_Tick;
 
         ContentBox.IsReadOnly = false;
         ContentBox.IsHitTestVisible = true;
         _isSelected = true;
-        MainBorder.BorderThickness = new Thickness(2);
-        MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFE082"));
+        UpdateSelectionState();
         ContentBox.Focus();
     }
 
-    private void ApplyRandomTheme()
+    private void UpdateSelectionState()
     {
-        _currentTheme = _themeService.GetRandomTheme();
-        ApplyTheme(_currentTheme);
+        if (_isSelected)
+        {
+            MainBorder.BorderThickness = new Thickness(2);
+            MainBorder.BorderBrush = FindResource($"{_currentTheme.Name}.Selection") as SolidColorBrush;
+        }
+        else
+        {
+            MainBorder.BorderThickness = new Thickness(0);
+            MainBorder.BorderBrush = null;
+        }
     }
 
     private void ApplyTheme(ThemeDefinition theme)
@@ -70,17 +61,13 @@ public partial class NoatWindow : Window
         MainBorder.Background = FindResource($"{theme.Name}.Background") as SolidColorBrush;
         ContentBox.Foreground = FindResource($"{theme.Name}.Text") as SolidColorBrush;
 
-        if (_isSelected)
-        {
-            MainBorder.BorderBrush = FindResource($"{theme.Name}.Selection") as SolidColorBrush;
-        }
+        UpdateSelectionState();
     }
 
     private void NoatWindow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _isSelected = true;
-        MainBorder.BorderThickness = new Thickness(2);
-        MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFE082"));
+        UpdateSelectionState();
         Focus();
         DragMove();
     }
@@ -99,11 +86,18 @@ public partial class NoatWindow : Window
         {
             ExitEditMode();
             _isSelected = false;
-            MainBorder.BorderThickness = new Thickness(0);
+            UpdateSelectionState();
         }
         else if (_isSelected && e.Key == Key.Delete && ContentBox.IsReadOnly)
         {
             Close();
+            e.Handled = true;
+        }
+        else if (_isSelected && e.Key == Key.H && ContentBox.IsReadOnly)
+        {
+            Hide();
+            _isSelected = false;
+            UpdateSelectionState();
             e.Handled = true;
         }
     }
@@ -112,7 +106,7 @@ public partial class NoatWindow : Window
     {
         ExitEditMode();
         _isSelected = false;
-        MainBorder.BorderThickness = new Thickness(0);
+        UpdateSelectionState();
     }
 
     private void ExitEditMode()
@@ -123,62 +117,44 @@ public partial class NoatWindow : Window
 
     private void NoatWindow_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        _resizeTimer.Stop();
-        _resizeTimer.Start();
+        _updateTimer.Stop();
+        _updateTimer.Start();
     }
 
-    private void ResizeTimer_Tick(object? sender, EventArgs e)
+    private void UpdateTimer_Tick(object? sender, EventArgs e)
     {
-        _resizeTimer.Stop();
-        EnforceAspectRatio();
+        _updateTimer.Stop();
+        UpdateLayout();
+    }
+
+    private new void UpdateLayout()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            // Update size based on content
+            ContentBox.Measure(new Size(Width, double.PositiveInfinity));
+            var desiredSize = ContentBox.DesiredSize.Height + ContentBox.Padding.Top + ContentBox.Padding.Bottom;
+            var newHeight = Math.Max(40, desiredSize);
+
+            // Apply new size and enforce aspect ratio
+            Height = newHeight;
+            Width = Math.Max(Width, Height * MinAspectRatio);
+
+            var currentRatio = Width / Height;
+            if (currentRatio < MinAspectRatio)
+            {
+                Height = Width / MinAspectRatio;
+            }
+            else if (currentRatio > MaxAspectRatio)
+            {
+                Height = Width / MaxAspectRatio;
+            }
+        }, DispatcherPriority.Render);
     }
 
     private void ContentBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
-        _textChangeTimer.Stop();
-        _textChangeTimer.Start();
-    }
-
-    private void TextChangeTimer_Tick(object? sender, EventArgs e)
-    {
-        Debug.WriteLine("Entered TextChangeTimer_Tick");
-        _textChangeTimer.Stop();
-        UpdateSizeBasedOnContent();
-    }
-
-    private void UpdateSizeBasedOnContent()
-    {
-        // Use Dispatcher.Invoke to ensure we're on the UI thread with the right priority
-        Dispatcher.Invoke(() =>
-        {
-            //Force layout update
-            ContentBox.Measure(new Size(Width, double.PositiveInfinity));
-
-            // Get desired size for content
-            var desiredSize = ContentBox.DesiredSize.Height + ContentBox.Padding.Top + ContentBox.Padding.Bottom;
-
-            Debug.WriteLine($"Desired Height: {desiredSize}, Current Height: {Height}, Content Height: {ContentBox.ActualHeight}");
-
-            // Maintain minimum size
-            var newHeight = Math.Max(40, desiredSize);
-
-            // Apply new size while respecting aspect ratio
-            Height = newHeight;
-            Width = Math.Max(Width, Height * MinAspectRatio);
-        }, DispatcherPriority.Render);
-    }
-
-    private void EnforceAspectRatio()
-    {
-        var currentRatio = Width / Height;
-
-        if (currentRatio < MinAspectRatio)
-        {
-            Height = Width / MinAspectRatio;
-        }
-        else if (currentRatio > MaxAspectRatio)
-        {
-            Height = Width / MaxAspectRatio;
-        }
+        _updateTimer.Stop();
+        _updateTimer.Start();
     }
 }
