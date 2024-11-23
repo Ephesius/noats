@@ -9,6 +9,18 @@ namespace Noats.Views.Windows;
 
 public partial class NoatWindow : Window
 {
+    public new string Content
+    {
+        get => ContentBox.Text;
+        set => ContentBox.Text = value;
+    }
+
+    public Point Position
+    {
+        get => new(Left, Top);
+        set { Left = value.X; Top = value.Y; }
+    }
+
     private bool _isSelected = false;
     private readonly DispatcherTimer _updateTimer;
     private const double MinAspectRatio = 1.0;
@@ -74,7 +86,7 @@ public partial class NoatWindow : Window
 
     private void NoatWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // Rest of the handler stays exactly the same
+        // Enter edit mode on selected noat
         if (_isSelected && e.Key == Key.E && ContentBox.IsReadOnly)
         {
             ContentBox.IsReadOnly = false;
@@ -82,22 +94,40 @@ public partial class NoatWindow : Window
             ContentBox.Focus();
             e.Handled = true;
         }
+        // Deselect any and all selected noats
         else if (e.Key == Key.Escape)
         {
             ExitEditMode();
             _isSelected = false;
             UpdateSelectionState();
         }
+        // Delete selected noat
         else if (_isSelected && e.Key == Key.Delete && ContentBox.IsReadOnly)
         {
             Close();
             e.Handled = true;
         }
+        // Hide selected noat
         else if (_isSelected && e.Key == Key.H && ContentBox.IsReadOnly)
         {
             Hide();
             _isSelected = false;
             UpdateSelectionState();
+            e.Handled = true;
+        }
+        // Duplicate selected noat
+        else if (_isSelected && e.Key == Key.D && ContentBox.IsReadOnly)
+        {
+            var newNoat = new NoatWindow(_themeService)
+            {
+                Content = this.Content,
+                Position = new Point(this.Left + 20, this.Top + 20),
+                Width = this.Width,
+                Height = this.Height
+            };
+
+            newNoat.ApplyTheme(this._currentTheme);
+            newNoat.Show();
             e.Handled = true;
         }
     }
