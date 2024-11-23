@@ -12,18 +12,22 @@ public class HotkeyService
     [DllImport("user32.dll")]
     private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
-    private const int HOTKEY_ID = 9000;
+    private const int HOTKEY_NEW = 9000;
+    private const int HOTKEY_HIDE = 9001;
     private const uint MOD_CONTROL = 0x0002;
     private const uint VK_J = 0x4A;
+    private const uint VK_H = 0x48;
 
     private IntPtr _windowHandle;
     private readonly Window _window;
     private readonly Action _createNoatAction;
+    private readonly Action _hideAllAction;
 
-    public HotkeyService(Window window, Action createNoatAction)
+    public HotkeyService(Window window, Action createNoatAction, Action hideAllAction)
     {
         _window = window;
         _createNoatAction = createNoatAction;
+        _hideAllAction = hideAllAction;
         Initialize();
     }
 
@@ -32,21 +36,31 @@ public class HotkeyService
         var helper = new WindowInteropHelper(_window);
         _windowHandle = helper.Handle;
         ComponentDispatcher.ThreadPreprocessMessage += ComponentDispatcher_ThreadPreprocessMessage;
-        RegisterHotKey(_windowHandle, HOTKEY_ID, MOD_CONTROL, VK_J);
+        RegisterHotKey(_windowHandle, HOTKEY_NEW, MOD_CONTROL, VK_J);
+        RegisterHotKey(_windowHandle, HOTKEY_HIDE, MOD_CONTROL, VK_H);
     }
 
     private void ComponentDispatcher_ThreadPreprocessMessage(ref MSG msg, ref bool handled)
     {
-        if (msg.message == 0x0312 && msg.wParam.ToInt32() == HOTKEY_ID)
+        if (msg.message != 0x0312) return;
+
+        switch (msg.wParam.ToInt32())
         {
-            _createNoatAction.Invoke();
-            handled = true;
+            case HOTKEY_NEW:
+                _createNoatAction.Invoke();
+                handled = true;
+                break;
+            case HOTKEY_HIDE:
+                _hideAllAction.Invoke();
+                handled = true;
+                break;
         }
     }
 
     public void Cleanup()
     {
-        UnregisterHotKey(_windowHandle, HOTKEY_ID);
+        UnregisterHotKey(_windowHandle, HOTKEY_NEW);
+        UnregisterHotKey(_windowHandle, HOTKEY_HIDE);
         ComponentDispatcher.ThreadPreprocessMessage -= ComponentDispatcher_ThreadPreprocessMessage;
     }
 }

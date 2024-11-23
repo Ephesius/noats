@@ -127,6 +127,7 @@ public partial class NoatWindow : Window
             };
 
             newNoat.ApplyTheme(this._currentTheme);
+            App.Current.RegisterNoat(newNoat);
             newNoat.Show();
             e.Handled = true;
         }

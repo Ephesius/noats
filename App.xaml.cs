@@ -9,8 +9,17 @@ namespace Noats;
 public partial class App : Application
 {
     private HotkeyService? _hotkeyService;
-    private ThemeService _themeService = new();
+    private readonly ThemeService _themeService = new();
     private Window? _hiddenWindow;
+    private readonly List<NoatWindow> _noats = [];
+
+    public static new App Current => (App)Application.Current;
+
+    public void RegisterNoat(NoatWindow noat)
+    {
+        _noats.Add(noat);
+        noat.Closed += (s, _) => _noats.Remove((NoatWindow)s!);
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -30,7 +39,7 @@ public partial class App : Application
         _hiddenWindow.Show();
 
         // Initialize hotkey service
-        _hotkeyService = new HotkeyService(_hiddenWindow, CreateNewNoat);
+        _hotkeyService = new HotkeyService(_hiddenWindow, CreateNewNoat, HideAllNoats);
     }
 
     private void CreateNewNoat()
@@ -38,7 +47,19 @@ public partial class App : Application
         Dispatcher.Invoke(() =>
         {
             var noat = new NoatWindow(_themeService);
+            RegisterNoat(noat);
             noat.Show();
+        });
+    }
+
+    private void HideAllNoats()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            foreach (var noat in _noats)
+            {
+                noat.Hide();
+            }
         });
     }
 
