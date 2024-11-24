@@ -155,7 +155,7 @@ public partial class NoatWindow : Window
                 Height = this.Height
             };
 
-            newNoat.ApplyTheme(this._currentTheme);
+            //newNoat.ApplyTheme(this._currentTheme);
             App.Current.RegisterNoat(newNoat);
             newNoat.Show();
             e.Handled = true;
