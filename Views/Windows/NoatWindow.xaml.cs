@@ -67,16 +67,14 @@ public partial class NoatWindow : Window
         // Ensure at least 20px of the window is visible
         if (Left + Width - 20 < workingArea.Left)
             Left = workingArea.Left;
-        else if (Left + 20 > workingArea.Right)
+        if (Left + 20 > workingArea.Right)
             Left = workingArea.Right - Width;
 
         if (Top + Height - 20 < workingArea.Top)
             Top = workingArea.Top;
-        else
-        {
-            if (Top + 20 > workingArea.Bottom)
-                Top = workingArea.Bottom - Height;
-        }
+
+        if (Top + 20 > workingArea.Bottom)
+            Top = workingArea.Bottom - Height;
     }
 
     private void UpdateSelectionState()
