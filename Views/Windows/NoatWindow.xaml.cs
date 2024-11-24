@@ -190,24 +190,22 @@ public partial class NoatWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
-            // Update size based on content
+            // First, measure desired content height
             ContentBox.Measure(new System.Windows.Size(Width, double.PositiveInfinity));
-            var desiredSize = ContentBox.DesiredSize.Height + ContentBox.Padding.Top + ContentBox.Padding.Bottom;
-            var newHeight = Math.Max(40, desiredSize);
+            var desiredHeight = Math.Max(40,
+                ContentBox.DesiredSize.Height + ContentBox.Padding.Top + ContentBox.Padding.Bottom);
 
-            // Apply new size and enforce aspect ratio
-            Height = newHeight;
-            Width = Math.Max(Width, Height * MinAspectRatio);
+            // Calculate width bounds based on aspect ratio constraints
+            var minWidth = desiredHeight * MinAspectRatio;
+            var maxWidth = desiredHeight * MaxAspectRatio;
 
-            var currentRatio = Width / Height;
-            if (currentRatio < MinAspectRatio)
-            {
-                Height = Width / MinAspectRatio;
-            }
-            else if (currentRatio > MaxAspectRatio)
-            {
-                Height = Width / MaxAspectRatio;
-            }
+            // Ensure width stays within aspect ratio bounds
+            var newWidth = Math.Max(minWidth, Math.Min(Width, maxWidth));
+
+            // Set final dimensions in one go to avoid jumping
+            Width = newWidth;
+            Height = desiredHeight;
+
         }, DispatcherPriority.Render);
     }
 
